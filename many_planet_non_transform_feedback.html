@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<label id = "fps"> fps </label>
+  <body>
+  <canvas width = "1370" height = "970" id = "my_Canvas"></canvas>
+    <script>
+    var canvas = document.getElementById('my_Canvas');
+    gl = canvas.getContext('webgl2');
+    var planetnum =1000000; 
+    var vertices = new Float32Array(planetnum * 8);
+    for (var i = 0;i < planetnum;++i){
+      vertices[i * 8] = Math.random() * 2 - 1;
+      vertices[i * 8 + 1] = (Math.random() * 2 - 1);
+      vertices[i * 8 + 2] = (Math.random() * 2 - 1);
+      vertices[i * 8 + 3] = (1.0);
+      vertices[i * 8 + 4] = (Math.random() / 4.0 + 0.01);
+      vertices[i * 8 + 5] = (Math.random() / 4.0 + 0.01);
+      vertices[i * 8 + 6] = (Math.random() / 4.0 + 0.01);
+      vertices[i * 8 + 7] = (0.0);
+    }
+    /*================ Shaders ====================*/
+    // Vertex shader source code
+    var vertCode = [
+      "#version 300 es",
+      "in highp vec4 coordinates;",
+      "void main(void) {",
+        "gl_Position = coordinates;",
+        "gl_PointSize = (gl_Position.z + 1.1) * 0.1;",
+      "}"].join("\n");   
+    // Create a vertex shader object
+    var vertShader = gl.createShader(gl.VERTEX_SHADER);
+
+    // Attach vertex shader source code
+    gl.shaderSource(vertShader, vertCode);
+
+    // Compile the vertex shader
+    gl.compileShader(vertShader);
+
+    //fragment shader source code
+    var fragCode = [
+      "#version 300 es",
+      "precision highp float;",
+      "out vec4 outvec;",
+      "void main(void) {",
+         "outvec = vec4(0.8, 0.8, 0.8, 0.1);",
+      '}'].join("\n");
+            
+    // Create fragment shader object
+    var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+    // Attach fragment shader source code
+    gl.shaderSource(fragShader, fragCode);
+    // Compile the fragmentt shader
+    gl.compileShader(fragShader);
+    // Create a shader program object to store
+    // the combined shader program
+    var shaderProgram = gl.createProgram();
+    // Attach a vertex shader
+    gl.attachShader(shaderProgram, vertShader);
+    // Attach a fragment shader
+    gl.attachShader(shaderProgram, fragShader);
+    // Link both the programs
+    gl.linkProgram(shaderProgram);
+    // Use the combined shader program object
+    gl.useProgram(shaderProgram);
+    /*======= Associating shaders to buffer objects =======*/
+    // Bind vertex buffer object
+    var vertex_buffer = gl.createBuffer();    
+    // Pass the vertex data to the buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+    var coord = gl.getAttribLocation(shaderProgram, "coordinates");
+    gl.enableVertexAttribArray(coord);
+    function draw(){
+      // Point an attribute to the currently bound VBO
+      for (var i = 0;i < planetnum;++i){
+        timeperframe = 0.01;
+        dist = vertices[8 * i] * vertices[8 * i] + vertices[8 * i + 1] * vertices[8 * i + 1] + vertices[8 * i + 2] * vertices[8 * i + 2];
+        res = 0.07 / (dist * Math.sqrt(dist));
+        vertices[8 * i + 4] = vertices[8 * i + 4] - res * timeperframe * vertices[8 * i];
+        vertices[8 * i + 5] = vertices[8 * i + 5] - res * timeperframe * vertices[8 * i + 1];
+        vertices[8 * i + 6] = vertices[8 * i + 6] - res * timeperframe * vertices[8 * i + 2];
+        vertices[8 * i + 7] = vertices[8 * i + 7] - 1.0 * vertices[8 * i + 3];
+        vertices[8 * i] = vertices[8*i] + vertices[8 * i + 4] * timeperframe;
+        vertices[8 * i + 1] = vertices[8 * i + 1] + vertices[8 * i + 5] * timeperframe;
+        vertices[8 * i + 2] = vertices[8 * i + 2] + vertices[8 * i + 6] * timeperframe;
+        vertices[8 * i + 3] = vertices[8 * i + 3] + vertices[8 * i + 7] * 0.0;
+      }
+      var bufA= vertices;
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, bufA , gl.STATIC_DRAW);
+      gl.vertexAttribPointer(coord, 4, gl.FLOAT, false, 32, 0);
+      // Enable the attribute   
+      gl.viewport(0,0,canvas.width,canvas.height);
+      // Clear the canvas
+      gl.clearColor(0.0, 0.0, 0.5, 0.9);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      // Set the view port
+      gl.viewport(0,0,canvas.width,canvas.height);
+      // Draw the triangle
+      gl.drawArrays(gl.POINTS, 0,planetnum);
+    }
+    var fps = 0;
+    var tick = function() {
+      draw();   
+      fps = fps + 1;
+      requestAnimationFrame(tick, canvas);
+    };
+    tick();
+    var fpsOut = document.getElementById("fps");
+    setInterval(function(){
+                            fpsOut.innerHTML = fps.toFixed(1) + " fps";
+                            fps = 0;
+                          }
+                , 1000);
+
+    </script>
+  </body>
+</html>

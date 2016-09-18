@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<label id = "fps"> fps </label>
+  <body>
+  <canvas width = "1370" height = "970" id = "my_Canvas"></canvas>
+  <script>
+    var canvas = document.getElementById('my_Canvas');
+    gl = canvas.getContext('webgl2');
+    //the number of planets to draw
+    var planetnum = 10;
+    var vertices = new Float32Array(planetnum * 8);
+    for (var i = 0;i < planetnum;++i){
+      vertices[i * 8] = Math.random() * 2 - 1;
+      vertices[i * 8 + 1] =(Math.random() * 2 - 1);
+      vertices[i * 8 + 2] = (Math.random() * 2 - 1);
+      vertices[i * 8 + 3] = (1.0);
+      vertices[i * 8 + 4] = (Math.random() / 4.0 + 0.01);
+      vertices[i * 8 + 5] = (Math.random() / 4.0 + 0.01);
+      vertices[i * 8 + 6] = (Math.random() / 4.0 + 0.01);
+      vertices[i * 8 + 7] = 0.0;
+    }
+     /*================ Shaders ====================*/
+     // Vertex shader source code
+    var vertCode = [
+      "#version 300 es",
+      "precision highp float;",
+      "in vec4 coordinates2;",
+      "in vec4 coordinates;",
+      "out vec4 velocity;",		
+      "void main(void) {",
+        "float timeperframe = 0.01;",
+        "float dist = coordinates.x * coordinates.x + coordinates.y * coordinates.y + coordinates.z * coordinates.z;",
+        "float res = 0.07 / (dist * sqrt(dist));",
+        "velocity = coordinates2 - vec4(res * timeperframe,res * timeperframe,res * timeperframe,1.0) * coordinates;",
+        "gl_Position = coordinates + velocity*vec4(timeperframe,timeperframe,timeperframe,0.0);",
+        "gl_PointSize = (gl_Position.z + 1.1) * 0.1;",
+     "}"].join("\n");   
+    // Create a vertex shader object
+    var vertShader = gl.createShader(gl.VERTEX_SHADER);
+    // Attach vertex shader source code
+    gl.shaderSource(vertShader, vertCode);
+    // Compile the vertex shader
+    gl.compileShader(vertShader);
+
+    //fragment shader source code
+    var fragCode = [
+      "#version 300 es",
+      "precision highp float;",
+      "out vec4 outvec;",
+      "void main(void) {",
+        "outvec = vec4(0.8, 0.8, 0.8, 0.1);",
+      "}"].join("\n");  
+    // Create fragment shader object
+    var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+    // Attach fragment shader source code
+    gl.shaderSource(fragShader, fragCode);
+    // Compile the fragmentt shader
+    gl.compileShader(fragShader);
+    // Create a shader program object to store
+    // the combined shader program
+    var shaderProgram = gl.createProgram();
+    // Attach a vertex shader
+    gl.attachShader(shaderProgram, vertShader);
+    // Attach a fragment shader
+    gl.attachShader(shaderProgram, fragShader);
+     
+    gl.transformFeedbackVaryings(shaderProgram, ["gl_Position","velocity"], gl.INTERLEAVED_ATTRIBS);
+    // Link both the programs
+    gl.linkProgram(shaderProgram);
+    // Use the combined shader program object
+    gl.useProgram(shaderProgram);
+
+    /*======= Associating shaders to buffer objects =======*/
+    // Bind vertex buffer object
+    var vertex_buffer = gl.createBuffer();
+    var feedback_buffer = gl.createBuffer();
+
+    // Pass the vertex data to the buffer
+    var bufA = new Float32Array(vertices);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, bufA , gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, feedback_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, bufA, gl.STATIC_DRAW);
+    var transformFeedback = gl.createTransformFeedback();
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedback);
+    var coord = gl.getAttribLocation(shaderProgram, "coordinates");
+    var coord2 = gl.getAttribLocation(shaderProgram, "coordinates2");
+    gl.enableVertexAttribArray(coord);
+    gl.enableVertexAttribArray(coord2);
+
+    function draw(){
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+      gl.vertexAttribPointer(coord, 4, gl.FLOAT, false, 32, 0);
+      gl.vertexAttribPointer(coord2, 4, gl.FLOAT, false, 32, 16);
+      gl.viewport(0,0,canvas.width,canvas.height);
+      // Clear the canvas
+      gl.clearColor(0.0, 0.0, 0.5, 0.9);
+      // Clear the color buffer bit
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, feedback_buffer);
+      gl.beginTransformFeedback(gl.POINTS);
+      gl.drawArrays(gl.POINTS, 0,planetnum);
+      gl.endTransformFeedback();
+      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+      var t = vertex_buffer;
+      vertex_buffer = feedback_buffer;
+      feedback_buffer = t;
+    }
+    var fps=0;
+    var tick = function(){
+      draw();
+      fps = fps + 1;
+      requestAnimationFrame(tick, canvas);
+    };
+    tick();
+    var fpsOut = document.getElementById('fps');
+    setInterval(function(){
+                            fpsOut.innerHTML = fps.toFixed(1) + " fps";
+                            fps = 0;
+                          }
+                ,1000);
+    </script>
+  </body>
+</html>

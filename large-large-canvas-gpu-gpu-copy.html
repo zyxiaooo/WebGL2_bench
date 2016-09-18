@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+  <label id = "format">format</label>
+  <label id = "fps">fps</label>
+  <body>
+    <canvas width = "1370" height = "970" id = "my_Canvas"></canvas>
+    <script>
+      var largeCanvasSize = 3500;//set the size of large large canvas
+      var vertCode =
+        'attribute vec4 a_Position;\n' +
+        'attribute vec2 a_TexCoord;\n' +
+        'varying vec2 v_TexCoord;\n' +
+        'void main() {\n' +
+          'gl_Position = a_Position;\n' +
+          'v_TexCoord = a_TexCoord;\n' +
+        '}\n';
+      var verticesTexCoords = new Float32Array([
+        // Vertex coordinates, texture coordinate
+        -0.5,  0.5,  0.0, 1.0,
+        -0.5, -0.5,  0.0, 0.0,
+         0.5,  0.5,  1.0, 1.0,
+         0.5, -0.5,  1.0, 0.0,
+      ]);
+      // Fragment shader program
+      var fragCode =
+      'precision mediump float;\n' +
+      'uniform sampler2D u_Sampler;\n' +
+      'varying vec2 v_TexCoord;\n' +
+      'void main() {\n' +
+        'gl_FragColor = texture2D(u_Sampler, v_TexCoord);\n' +
+      '}\n';
+      var canvas = document.getElementById('my_Canvas');
+      gl = canvas.getContext('webgl2');
+      var internalFormatList = {
+                         "gl.R8" : gl.R8,
+                         "gl.R8_SNORM" : gl.R8_SNORM,
+                         "gl.R16F" : gl.R16F, 
+                         "gl.RG8" : gl.RG8,
+                         "gl.RG8_SNORM" : gl.RG8_SNORM,
+                         "gl.RG16F" : gl.RG16F,  
+                         "gl.RGB8" : gl.RGB8,
+                         "gl.RGB8_SNORM" : gl.RGB8_SNORM,
+                         "gl.SRGB8" : gl.SRGB8,
+                         "gl.SRGB8_ALPHA8" : gl.SRGB8_ALPHA8,
+                         "gl.RGB565" : gl.RGB565, 
+                         "gl.R11F_G11F_B10F" : gl.R11F_G11F_B10F, 
+                         "gl.RGB9_E5" : gl.RGB9_E5, 
+                         "gl.RGB16F" : gl.RGB16F,
+                         "gl.RGB10_A2" : gl.RGB10_A2,
+                         "gl.RGBA8" : gl.RGBA8,
+                         "gl.RGBA8_SNORM" : gl.RGBA8_SNORM,
+                         "gl.RGB5_A1" : gl.RGB5_A1, 
+                         "gl.RGBA4" : gl.RGBA4, 
+                         "gl.RGBA16F" : gl.RGBA16F,
+                       };
+      var formatList = {
+                         "gl.R8" : gl.RED,
+                         "gl.R8_SNORM" : gl.RED,
+                         "gl.R16F" : gl.RED, 
+                         "gl.RG8" : gl.RG,
+                         "gl.RG8_SNORM" : gl.RG,
+                         "gl.RG16F" : gl.RG, 
+                         "gl.RGB8" : gl.RGB,
+                         "gl.RGB8_SNORM" : gl.RGB,
+                         "gl.SRGB8" : gl.RGB,
+                         "gl.SRGB8_ALPHA8" : gl.RGBA,
+                         "gl.RGB565" : gl.RGB, 
+                         "gl.R11F_G11F_B10F" : gl.RGB, 
+                         "gl.RGB9_E5" : gl.RGB, 
+                         "gl.RGB16F" : gl.RGB,
+                         "gl.RGB10_A2" : gl.RGBA,
+                         "gl.RGBA8" : gl.RGBA,
+                         "gl.RGBA8_SNORM" : gl.RGBA,
+                         "gl.RGB5_A1" : gl.RGBA, 
+                         "gl.RGBA4" : gl.RGBA, 
+                         "gl.RGBA16F" : gl.RGBA,
+                       };   
+      var typeList = {
+                         "gl.R8" : gl.UNSIGNED_BYTE,
+      	                 "gl.R8_SNORM" : gl.BYTE,
+                         "gl.R16F" : gl.FLOAT,  
+                         "gl.RG8" : gl.UNSIGNED_BYTE,
+                         "gl.RG8_SNORM" : gl.BYTE,
+                         "gl.RG16F" : gl.FLOAT, 
+                         "gl.RGB8" : gl.UNSIGNED_BYTE,
+                         "gl.RGB8_SNORM" : gl.BYTE,
+                         "gl.SRGB8" : gl.UNSIGNED_BYTE,
+                         "gl.SRGB8_ALPHA8" : gl.UNSIGNED_BYTE,
+                         "gl.RGB565" : gl.UNSIGNED_BYTE,
+                         "gl.R11F_G11F_B10F" : gl.UNSIGNED_INT_10F_11F_11F_REV, 
+                         "gl.RGB9_E5" : gl.FLOAT,
+                         "gl.RGB16F" : gl.FLOAT,
+                         "gl.RGB10_A2" : gl.UNSIGNED_INT_2_10_10_10_REV,
+                         "gl.RGBA8" : gl.UNSIGNED_BYTE,
+                         "gl.RGBA8_SNORM" : gl.BYTE,
+                         "gl.RGB5_A1" : gl.UNSIGNED_BYTE, 
+                         "gl.RGBA4" : gl.UNSIGNED_BYTE, 
+                         "gl.RGBA16F" : gl.FLOAT,
+                       };                                          
+      var internalFormatName = [];
+      var internalFormatArray = [];
+      var formatArray = [];
+      var typeArray = [];
+      for (var key in internalFormatList){
+      	internalFormatArray.push(internalFormatList[key]);
+      	internalFormatName.push(key);
+      }
+      for (var key in formatList){
+      	formatArray.push(formatList[key]);
+      }
+      for (var key in typeList){
+      	typeArray.push(typeList[key]);
+      }
+      var vertShader = gl.createShader(gl.VERTEX_SHADER);
+      // Attach vertex shader source code
+      gl.shaderSource(vertShader, vertCode);
+      // Compile the vertex shader
+      gl.compileShader(vertShader);
+      var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+      // Attach fragment shader source code
+      gl.shaderSource(fragShader, fragCode);
+      // Compile the fragmentt shader
+      gl.compileShader(fragShader);
+      // Create a shader program object to store
+      // the combined shader program
+      var shaderProgram = gl.createProgram();
+      // Attach a vertex shader
+      gl.attachShader(shaderProgram, vertShader);
+      // Attach a fragment shader
+      gl.attachShader(shaderProgram, fragShader);
+      // Link both the programs
+      gl.linkProgram(shaderProgram);
+      // Use the combined shader program object
+      gl.useProgram(shaderProgram);
+      var vertexTexCoordBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexCoordBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, verticesTexCoords, gl.STATIC_DRAW);
+      var a_Position = gl.getAttribLocation(shaderProgram, 'a_Position');
+      gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 16, 0);
+      gl.enableVertexAttribArray(a_Position);
+      // Enable the assignment of the buffer object
+      // Get the storage location of a_TexCoord
+      var a_TexCoord = gl.getAttribLocation(shaderProgram, 'a_TexCoord');
+      // Assign the buffer object to a_TexCoord variable
+      gl.vertexAttribPointer(a_TexCoord, 2, gl.FLOAT, false, 16, 8);
+      gl.enableVertexAttribArray(a_TexCoord);
+      // Enable the assignment of the buffer object
+      var u_Sampler = gl.getUniformLocation(shaderProgram, 'u_Sampler');
+      var tex = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE0);
+      var largeCanvas = document.createElement("canvas");
+      largeCanvas.width = largeCanvasSize;
+      largeCanvas.height = largeCanvasSize;
+      var largeCanvasCtx = largeCanvas.getContext("2d");
+      var draw = function(internalFormat, format, type){
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        largeCanvasCtx.fillStyle = "rgb(" + Math.round(Math.random() * 255) + "," + Math.round(Math.random() * 255) + "," + Math.round(Math.random() * 255) + ")";
+        largeCanvasCtx.fillRect(0,0,largeCanvasSize,largeCanvasSize);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, format, type, largeCanvas);
+        gl.uniform1i(u_Sampler, 0);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+      var fps = 0;
+      var formatIndex = 0;
+      var tick = function() {
+        draw(internalFormatArray[formatIndex], formatArray[formatIndex], typeArray[formatIndex]);   
+        fps = fps + 1;
+        requestAnimationFrame(tick, canvas);
+      };
+    tick();
+    var fpsOut = document.getElementById('fps');
+    var formatOut = document.getElementById('format');
+    var seconds = 0;
+    formatOut.innerHTML = internalFormatName[formatIndex];
+    setInterval(function(){
+                            fpsOut.innerHTML = fps.toFixed(1) + " fps";
+                            fps = 0;
+                            seconds = seconds + 1;
+                            if(seconds == 5){
+                            	seconds = 0;
+                            	formatIndex = (formatIndex + 1) % internalFormatName.length
+                            	formatOut.innerHTML = internalFormatName[formatIndex];
+                            }
+                          }
+                ,1000);
+    </script>
+  </body>
+</html>
